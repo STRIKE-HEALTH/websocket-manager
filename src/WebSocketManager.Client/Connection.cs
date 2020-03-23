@@ -67,6 +67,31 @@ namespace WebSocketManager.Client
                 {
                     this.ConnectionId = receivedMessage.Data;
                 }
+                else if (receivedMessage.MessageType == MessageType.Raw || receivedMessage.MessageType == MessageType.Text)
+                {
+                    InvocationDescriptor invocationDescriptor = null;
+                    try
+                    {
+                        invocationDescriptor = new InvocationDescriptor();
+                        var listArgs = new List<object>();
+                        listArgs.Add(receivedMessage.Data);
+                        invocationDescriptor.Arguments = listArgs.ToArray();
+                        invocationDescriptor.Identifier = new Guid();
+                        invocationDescriptor.MethodName = "ReceiveString";
+                        if (invocationDescriptor == null) return;
+                        try
+                        {
+                            await MethodInvocationStrategy.OnInvokeMethodReceivedAsync(_clientWebSocket, invocationDescriptor);
+                        }
+                        catch (Exception)
+                        {
+                            // we consume all exceptions.
+                        }
+
+                    }
+                    catch { return; } // ignore invalid data sent to the client.
+
+                }
                 else if (receivedMessage.MessageType == MessageType.MethodInvocation)
                 {
                     // retrieve the method invocation request.
@@ -229,6 +254,9 @@ namespace WebSocketManager.Client
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     var message = JsonConvert.DeserializeObject<Message>(serializedMessage, _jsonSerializerSettings);
+
+                    if (message == null || message.Data==null)
+                        message = new Message { MessageType = MessageType.Raw, Data = serializedMessage };
                     handleMessage(message);
                 }
                 else if (result.MessageType == WebSocketMessageType.Close)

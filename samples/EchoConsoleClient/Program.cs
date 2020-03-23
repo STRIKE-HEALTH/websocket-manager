@@ -6,15 +6,15 @@ using WebSocketManager.Common;
 public class Program
 {
     private static Connection _connection;
-    private static StringMethodInvocationStrategy _strategy;
+    private static RawStringInvocationStrategy _strategy;
 
     public static void Main(string[] args)
     {
         StartConnectionAsync();
 
-        _strategy.On("receiveMessage", (arguments) =>
+        _strategy.OnRecieveMessage( (arguments) =>
         {
-            Console.WriteLine($"{arguments[0]} said: {arguments[1]}");
+            Console.WriteLine($"{arguments[0]}");
         });
 
         Console.ReadLine();
@@ -23,9 +23,9 @@ public class Program
 
     public static async Task StartConnectionAsync()
     {
-        _strategy = new StringMethodInvocationStrategy();
+        _strategy = new RawStringInvocationStrategy();
         _connection = new Connection(_strategy);
-        await _connection.StartConnectionAsync("ws://localhost:65110/chat");
+        await _connection.StartConnectionAsync("ws://localhost:5000/ws/ALL_7de39c0ebb9c4dc0ba6acd9d4251ed7e");
     }
 
     public static async Task StopConnectionAsync()
