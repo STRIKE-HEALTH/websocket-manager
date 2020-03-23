@@ -47,7 +47,8 @@ namespace WebSocketManager
         {
             if (_groups.ContainsKey(groupID))
             {
-                _groups[groupID].Add(socketID);
+                if(!_groups[groupID].Contains(socketID))
+                    _groups[groupID].Add(socketID);
 
                 return;
             }
@@ -69,7 +70,11 @@ namespace WebSocketManager
 
             WebSocket socket;
             _sockets.TryRemove(id, out socket);
+            foreach (var group in _groups.Keys)
+            {
+                RemoveFromGroup(id,group);
 
+            } 
             if (socket.State != WebSocketState.Open) return;
 
             await socket.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
