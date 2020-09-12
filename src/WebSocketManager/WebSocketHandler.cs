@@ -212,6 +212,8 @@ namespace WebSocketManager
             {
                 foreach (var socket in sockets)
                 {
+                    if (message.Channel == null || message.Channel == string.Empty)
+                        message.Channel = groupID;
                     await SendMessageAsync(socket, message);
                 }
             }
@@ -225,7 +227,11 @@ namespace WebSocketManager
                 foreach (var id in sockets)
                 {
                     if (id != except)
+                    {
+                        if (message.Channel == null || message.Channel == string.Empty)
+                            message.Channel = groupID;
                         await SendMessageAsync(id, message);
+                    }
                 }
             }
         }
