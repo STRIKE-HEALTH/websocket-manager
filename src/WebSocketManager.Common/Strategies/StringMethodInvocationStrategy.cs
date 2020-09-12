@@ -16,7 +16,7 @@ namespace WebSocketManager.Common
         /// The registered handlers.
         /// </summary>
         private Dictionary<string, InvocationHandler> _handlers = new Dictionary<string, InvocationHandler>();
-
+        private InvocationHandler _defaultHandler;
         /// <summary>
         /// Registers the specified method name and calls the action.
         /// </summary>
@@ -68,7 +68,10 @@ namespace WebSocketManager.Common
         public override async Task<object> OnInvokeMethodReceivedAsync(WebSocket socket, InvocationDescriptor invocationDescriptor)
         {
             if (!_handlers.ContainsKey(invocationDescriptor.MethodName))
-                throw new Exception($"Received unknown command '{invocationDescriptor.MethodName}'.");
+            {
+                //throw new Exception($"Received unknown command '{invocationDescriptor.MethodName}'.");
+                return await Task.Run(() => _defaultHandler.Handler(invocationDescriptor.Arguments));
+            }
             var invocationHandler = _handlers[invocationDescriptor.MethodName];
             if (invocationHandler != null)
                 return await Task.Run(() => invocationHandler.Handler(invocationDescriptor.Arguments));
