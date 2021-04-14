@@ -12,7 +12,7 @@ using WebSocketManager.Common;
 
 namespace WebSocketManager.Client
 {
-    public class Connection
+    public partial class Connection
     {
         public string ConnectionId { get; set; }
 
@@ -66,6 +66,31 @@ namespace WebSocketManager.Client
                 if (receivedMessage.MessageType == MessageType.ConnectionEvent)
                 {
                     this.ConnectionId = receivedMessage.Data;
+                }
+                else if (receivedMessage.MessageType == MessageType.Raw || receivedMessage.MessageType == MessageType.Text)
+                {
+                    InvocationDescriptor invocationDescriptor = null;
+                    try
+                    {
+                        invocationDescriptor = new InvocationDescriptor();
+                        var listArgs = new List<object>();
+                        listArgs.Add(receivedMessage.Data);
+                        invocationDescriptor.Arguments = listArgs.ToArray();
+                        invocationDescriptor.Identifier = new Guid();
+                        invocationDescriptor.MethodName = "ReceiveString";
+                        if (invocationDescriptor == null) return;
+                        try
+                        {
+                            await MethodInvocationStrategy.OnInvokeMethodReceivedAsync(_clientWebSocket, invocationDescriptor);
+                        }
+                        catch (Exception)
+                        {
+                            // we consume all exceptions.
+                        }
+
+                    }
+                    catch { return; } // ignore invalid data sent to the client.
+
                 }
                 else if (receivedMessage.MessageType == MessageType.MethodInvocation)
                 {
@@ -137,6 +162,35 @@ namespace WebSocketManager.Client
                         // remove the completion source from the waiting list.
                         _waitingRemoteInvocations.Remove(invocationResult.Identifier);
                     }
+                }
+                else if (receivedMessage.MessageType == MessageType.Event)
+                {
+                    // retrieve the method invocation request.
+                    InvocationDescriptor invocationDescriptor = null;
+                    try
+                    {
+                        invocationDescriptor = new InvocationDescriptor();
+                        var listArgs = new List<object>();
+                        listArgs.Add(receivedMessage.Data);
+                        invocationDescriptor.Arguments = listArgs.ToArray();
+                        invocationDescriptor.Identifier = new Guid();
+                        invocationDescriptor.MethodName = receivedMessage.Channel;
+                        if (invocationDescriptor == null) return;
+                        try
+                        {
+                            await MethodInvocationStrategy.OnInvokeMethodReceivedAsync(_clientWebSocket, invocationDescriptor);
+                        }
+                        catch (Exception)
+                        {
+                            // we consume all exceptions.
+                        }
+                    }
+                    catch { return; } // ignore invalid data sent to the client.
+
+                    // if the unique identifier hasn't been set then the server doesn't want a return value.
+
+                    
+                    
                 }
             });
         }
@@ -229,6 +283,9 @@ namespace WebSocketManager.Client
                 if (result.MessageType == WebSocketMessageType.Text)
                 {
                     var message = JsonConvert.DeserializeObject<Message>(serializedMessage, _jsonSerializerSettings);
+
+                    if (message == null || message.Data==null)
+                        message = new Message { MessageType = MessageType.Raw, Data = serializedMessage };
                     handleMessage(message);
                 }
                 else if (result.MessageType == WebSocketMessageType.Close)
