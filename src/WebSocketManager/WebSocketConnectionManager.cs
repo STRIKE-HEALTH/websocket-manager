@@ -74,6 +74,7 @@ namespace WebSocketManager
             _sockets.TryRemove(id, out socket);
             foreach (var group in _groups.Keys)
             {
+                RemoveFromGroup(id,group);
 
             } 
             if (socket.State != WebSocketState.Open) return;
