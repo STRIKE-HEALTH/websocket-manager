@@ -15,7 +15,8 @@ namespace WebSocketManager
 
         public WebSocket GetSocketById(string id)
         {
-            return _sockets.FirstOrDefault(p => p.Key == id).Value;
+            _sockets.TryGetValue(id, out var socket);
+            return socket;
         }
 
         public ConcurrentDictionary<string, WebSocket> GetAll()
@@ -68,11 +69,11 @@ namespace WebSocketManager
         {
             if (id == null) return;
 
+                RemoveFromGroup(id,group);
             WebSocket socket;
             _sockets.TryRemove(id, out socket);
             foreach (var group in _groups.Keys)
             {
-                RemoveFromGroup(id,group);
 
             } 
             if (socket.State != WebSocketState.Open) return;
