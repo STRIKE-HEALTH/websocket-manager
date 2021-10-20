@@ -69,7 +69,7 @@ namespace WebSocketManager
         {
             if (id == null) return;
 
-                RemoveFromGroup(id,group);
+               
             WebSocket socket;
             _sockets.TryRemove(id, out socket);
             foreach (var group in _groups.Keys)
