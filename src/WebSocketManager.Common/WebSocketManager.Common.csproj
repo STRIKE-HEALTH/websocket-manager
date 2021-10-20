@@ -3,6 +3,13 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <ReleaseVersion>0.2</ReleaseVersion>
+    <UserSecretsId>1a64f797-fcf5-4406-adcf-612a2cb13440</UserSecretsId>
+    <Company>Strike Health</Company>
+    <Product />
+    <PackageDescription>Common Components for the WebSocket PubSubHub</PackageDescription>
+    <RepositoryUrl>https://github.com/STRIKE-HEALTH/websocket-manager</RepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
