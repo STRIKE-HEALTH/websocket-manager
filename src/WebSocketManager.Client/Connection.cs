@@ -67,7 +67,7 @@ namespace WebSocketManager.Client
                 {
                     this.ConnectionId = receivedMessage.Data;
                 }
-                else if (receivedMessage.MessageType == MessageType.Raw || receivedMessage.MessageType == MessageType.Text)
+                else if ( receivedMessage.MessageType == MessageType.Text)
                 {
                     InvocationDescriptor invocationDescriptor = null;
                     try
@@ -285,7 +285,7 @@ namespace WebSocketManager.Client
                     var message = JsonConvert.DeserializeObject<Message>(serializedMessage, _jsonSerializerSettings);
 
                     if (message == null || message.Data==null)
-                        message = new Message { MessageType = MessageType.Raw, Data = serializedMessage };
+                        message = new Message { MessageType = MessageType.Text, Data = serializedMessage };
                     handleMessage(message);
                 }
                 else if (result.MessageType == WebSocketMessageType.Close)

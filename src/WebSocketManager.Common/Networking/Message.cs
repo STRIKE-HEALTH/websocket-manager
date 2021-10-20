@@ -2,7 +2,7 @@
 {
     public enum MessageType
     {
-        Raw,
+
         Text,
         MethodInvocation,
         ConnectionEvent,
