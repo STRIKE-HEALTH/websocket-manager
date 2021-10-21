@@ -16,7 +16,7 @@ namespace WebSocketManager.Common
         /// The registered handlers.
         /// </summary>
         private Dictionary<string, InvocationHandler> _handlers = new Dictionary<string, InvocationHandler>();
-        private InvocationHandler _defaultHandler;
+        private InvocationHandler _defaultHandler =null;
         /// <summary>
         /// Registers the specified method name and calls the action.
         /// </summary>
