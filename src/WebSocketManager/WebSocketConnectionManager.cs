@@ -39,9 +39,11 @@ namespace WebSocketManager
             return _sockets.FirstOrDefault(p => p.Value == socket).Key;
         }
 
-        public void AddSocket(WebSocket socket)
+        public string AddSocket(WebSocket socket)
         {
-            _sockets.TryAdd(CreateConnectionId(), socket);
+            var id = CreateConnectionId();
+            _sockets.TryAdd(id, socket);
+            return id;
         }
 
         public void AddToGroup(string socketID, string groupID)

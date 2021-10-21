@@ -9,6 +9,7 @@
     <RepositoryUrl>https://github.com/STRIKE-HEALTH/websocket-manager</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <ItemGroup>
