@@ -1,15 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <ReleaseVersion>0.2</ReleaseVersion>
     <Company>Strike Health</Company>
-    <Product />
+    <Product>Strike WebSocket Manager</Product>
     <PackageDescription>Common Components for the WebSocket PubSubHub</PackageDescription>
     <RepositoryUrl>https://github.com/STRIKE-HEALTH/websocket-manager</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <Version>1.0.1</Version>
+    <PackageId>Strike.WebSocketManager</PackageId>
+    <Authors>Karan Bajaj</Authors>
+    <AssemblyName>Strike.WebSocketManager</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
