@@ -46,6 +46,15 @@ namespace WebSocketManager
             return id;
         }
 
+        public void AddSocketWithId(string id,WebSocket socket)
+        {
+            if(_sockets.ContainsKey(id))
+                _sockets[id] =socket;
+            else
+                _sockets.TryAdd(id, socket);
+           
+        }
+
         public void AddToGroup(string socketID, string groupID)
         {
             if (_groups.ContainsKey(groupID))
