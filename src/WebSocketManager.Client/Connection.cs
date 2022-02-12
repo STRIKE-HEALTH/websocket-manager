@@ -77,6 +77,7 @@ namespace WebSocketManager.Client
                         listArgs.Add(receivedMessage.Data);
                         invocationDescriptor.Arguments = listArgs.ToArray();
                         invocationDescriptor.Identifier = new Guid();
+                        invocationDescriptor.Channel = receivedMessage.Channel;
                         invocationDescriptor.MethodName = "ReceiveString";
                         if (invocationDescriptor == null) return;
                         try
@@ -163,38 +164,60 @@ namespace WebSocketManager.Client
                         _waitingRemoteInvocations.Remove(invocationResult.Identifier);
                     }
                 }
-                else if (receivedMessage.MessageType == MessageType.Event)
-                {
-                    // retrieve the method invocation request.
-                    InvocationDescriptor invocationDescriptor = null;
-                    try
-                    {
-                        invocationDescriptor = new InvocationDescriptor();
-                        var listArgs = new List<object>();
-                        listArgs.Add(receivedMessage.Data);
-                        invocationDescriptor.Arguments = listArgs.ToArray();
-                        invocationDescriptor.Identifier = new Guid();
-                        invocationDescriptor.MethodName = receivedMessage.Channel;
-                        if (invocationDescriptor == null) return;
-                        try
-                        {
-                            await MethodInvocationStrategy.OnInvokeMethodReceivedAsync(_clientWebSocket, invocationDescriptor);
-                        }
-                        catch (Exception)
-                        {
-                            // we consume all exceptions.
-                        }
-                    }
-                    catch { return; } // ignore invalid data sent to the client.
+                //else if (receivedMessage.MessageType == MessageType.Event)
+                //{
+                //    // retrieve the method invocation request.
+                //    InvocationDescriptor invocationDescriptor = null;
+                //    try
+                //    {
+                //        invocationDescriptor = new InvocationDescriptor();
+                //        var listArgs = new List<object>();
+                //        listArgs.Add(receivedMessage.Data);
+                //        invocationDescriptor.Arguments = listArgs.ToArray();
+                //        invocationDescriptor.Identifier = new Guid();
+                //        invocationDescriptor.MethodName = receivedMessage.Channel;
+                //        if (invocationDescriptor == null) return;
+                //        try
+                //        {
+                //            await MethodInvocationStrategy.OnInvokeMethodReceivedAsync(_clientWebSocket, invocationDescriptor);
+                //        }
+                //        catch (Exception)
+                //        {
+                //            // we consume all exceptions.
+                //        }
+                //    }
+                //    catch { return; } // ignore invalid data sent to the client.
 
-                    // if the unique identifier hasn't been set then the server doesn't want a return value.
+                //    // if the unique identifier hasn't been set then the server doesn't want a return value.
 
                     
                     
-                }
+                //}
             });
         }
 
+        public WebSocketState GetSocketState()
+        {
+            if (_clientWebSocket == null)
+                return WebSocketState.None;
+            return _clientWebSocket.State;
+
+        }
+
+        public async Task SendMessageAsync(Message message)
+        {
+            if (_clientWebSocket.State != WebSocketState.Open)
+                return;
+
+            var serializedMessage = JsonConvert.SerializeObject(message, _jsonSerializerSettings);
+            var encodedMessage = Encoding.UTF8.GetBytes(serializedMessage);
+            await _clientWebSocket.SendAsync(buffer: new ArraySegment<byte>(array: encodedMessage,
+                                                                  offset: 0,
+                                                                  count: encodedMessage.Length),
+                                   messageType: WebSocketMessageType.Text,
+                                   endOfMessage: true,
+                                   cancellationToken: CancellationToken.None).ConfigureAwait(false);
+        }
         /// <summary>
         /// Send a method invoke request to the server and waits for a reply.
         /// </summary>
