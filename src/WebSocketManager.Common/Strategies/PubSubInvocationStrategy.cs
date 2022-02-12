@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace WebSocketManager.Common
@@ -10,7 +11,7 @@ namespace WebSocketManager.Common
     /// <summary>
     /// The string method invocation strategy. Finds methods by registering the names and callbacks.
     /// </summary>
-    public class EventInvocationStrategy : MethodInvocationStrategy
+    public class PubSubStrategy : MethodInvocationStrategy
     {
         /// <summary>
         /// The registered handlers.
@@ -78,16 +79,32 @@ namespace WebSocketManager.Common
         /// <returns>Awaitable Task.</returns>
         public override async Task<object> OnInvokeMethodReceivedAsync(WebSocket socket, InvocationDescriptor invocationDescriptor)
         {
-            if(invocationDescriptor.MethodName== "ReceiveString")
-            {
+            
+            
                 if (_recieveMessageHandler != null)
                 {
                     Func<object[], object> Handler = (args) => { _recieveMessageHandler(args); return null; };
-                    return await Task.Run(() => Handler(invocationDescriptor.Arguments));
+                    _ = Task.Run(() => Handler(invocationDescriptor.Arguments));
                 }
-                else
-                    return await Task.FromResult<object>(null); 
-            }
+                
+            
+                var channel = invocationDescriptor.Channel;
+                //var publishHandlersForChannel = _handlers[channel];
+
+                var publishHandlersForChannel = from result in _handlers
+                              where Regex.Match(channel, result.Key, RegexOptions.Singleline|RegexOptions.IgnoreCase).Success
+                              select result.Value;
+
+                await Task.Run(() => {
+
+                    foreach (var handlers in publishHandlersForChannel)
+                    foreach (var handle in handlers)
+                        handle.Handler(invocationDescriptor.Arguments);
+
+                    return new object();
+                });
+            
+
             if (!_handlers.ContainsKey(invocationDescriptor.MethodName))
                 throw new Exception($"Received unknown command '{invocationDescriptor.MethodName}'.");
             var invocationHandler = _handlers[invocationDescriptor.MethodName];

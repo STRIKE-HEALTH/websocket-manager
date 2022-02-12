@@ -7,7 +7,7 @@
         MethodInvocation,
         ConnectionEvent,
         MethodReturnValue,
-        Event
+       
     }
 
     public class Message
