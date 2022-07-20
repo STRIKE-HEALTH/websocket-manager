@@ -89,22 +89,25 @@ namespace WebSocketManager.Common
                 
             
                 var channel = invocationDescriptor.Channel;
+            if (!string.IsNullOrEmpty(channel))
+            {
                 //var publishHandlersForChannel = _handlers[channel];
 
                 var publishHandlersForChannel = from result in _handlers
-                              where Regex.Match(channel, result.Key, RegexOptions.Singleline|RegexOptions.IgnoreCase).Success
-                              select result.Value;
+                                                where Regex.Match(channel, result.Key, RegexOptions.Singleline | RegexOptions.IgnoreCase).Success
+                                                select result.Value;
 
-                await Task.Run(() => {
+                await Task.Run(() =>
+                {
 
                     foreach (var handlers in publishHandlersForChannel)
-                    foreach (var handle in handlers)
-                        handle.Handler(invocationDescriptor.Arguments);
+                        foreach (var handle in handlers)
+                            handle.Handler(invocationDescriptor.Arguments);
 
                     return new object();
                 });
-            
 
+            }
             if (!_handlers.ContainsKey(invocationDescriptor.MethodName))
                 throw new Exception($"Received unknown command '{invocationDescriptor.MethodName}'.");
             var invocationHandler = _handlers[invocationDescriptor.MethodName];
