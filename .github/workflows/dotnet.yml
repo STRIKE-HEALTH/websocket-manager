@@ -34,14 +34,14 @@ jobs:
     - name: Test
       run: dotnet test --no-restore --verbosity normal
     - name: Pack Project Websocket Common
-      run: dotnet pack --configuration Release  ./src/WebSocketManager.Common/WebSocketManager.Common.csproj 
+      run: dotnet pack --configuration Release ./src/WebSocketManager.Common/WebSocketManager.Common.csproj 
     - name: Pack Project Websocket Manager
       run: dotnet pack --configuration Release ./src/WebSocketManager/WebSocketManager.csproj    
     - name: Pack Project Websocket Client
       run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj   
     - name: Publish Package Websocket Common
-      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
