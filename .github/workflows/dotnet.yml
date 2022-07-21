@@ -18,7 +18,7 @@ jobs:
     - name: Display dotnet version
       run: dotnet --version
     - name: adding nuget source 
-      run : dotnet nuget add source --username karanbajaj --password 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 --store-password-in-clear-text --name github "https://nuget.pkg.github.com/STRIKE-HEALTH/index.json"
+      run : dotnet nuget add source --username karanbajaj --password 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 --store-password-in-clear-text --name github2 "https://nuget.pkg.github.com/STRIKE-HEALTH/index.json"
     - name: package packageSources
       run: dotnet nuget list source 
     - name: Restore dependencies
