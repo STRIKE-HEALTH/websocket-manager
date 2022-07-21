@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
           dotnet-version: '3.1.x'
-          source-url: https://nuget.pkg.github.com/<owner>/index.json
+          source-url: https://nuget.pkg.github.com/karanbajaj/index.json
       env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
     - name: Display dotnet version
@@ -36,9 +36,9 @@ jobs:
     - name: Pack Project Websocket Common
       run: dotnet pack --configuration Release ./src/WebSocketManager.Common/WebSocketManager.Common.csproj 
     - name: Pack Project Websocket Manager
-      run: dotnet pack --configuration Release ./src/WebSocketManager/WebSocketManager.csproj  -IncludeReferencedProjects  
+      run: dotnet pack --configuration Release ./src/WebSocketManager/WebSocketManager.csproj    
     - name: Pack Project Websocket Client
-      run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj -IncludeReferencedProjects  
+      run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj   
     - name: Publish Package Websocket Common
       run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
     - name: Publish Package
