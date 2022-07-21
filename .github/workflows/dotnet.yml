@@ -20,7 +20,7 @@ jobs:
       uses: actions/setup-dotnet@v2
       with:
           dotnet-version: '3.1.x'
-          source-url: https://nuget.pkg.github.com/karanbajaj/index.json
+          source-url: https://nuget.pkg.github.com/STRIKE-HEALTH/index.json
       env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
     - name: Display dotnet version
