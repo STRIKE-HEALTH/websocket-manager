@@ -10,11 +10,15 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    
+     strategy:
+      matrix:
+        dotnet-version: ['3.1.x']
     steps:
     - uses: actions/checkout@v3
-    - name: Setup dotnet 
+    - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v2
+       with:
+          dotnet-version: ${{ matrix.dotnet-version }}
     - name: Display dotnet version
       run: dotnet --version
     - name: package packageSources
@@ -22,7 +26,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build -c Release --no-restore
+      run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-build --verbosity normal
       
