@@ -10,15 +10,19 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        dotnet-version: ['3.1.x']
+    permissions:
+      packages: write
+      contents: read
+   
     steps:
     - uses: actions/checkout@v3
-    - name: Setup .NET Core SDK ${{ matrix.dotnet-version }}
+    - name: Setup .NET Core SDK '3.1.x'
       uses: actions/setup-dotnet@v2
       with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: '3.1.x'
+          source-url: https://nuget.pkg.github.com/<owner>/index.json
+      env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
     - name: Display dotnet version
       run: dotnet --version
     - name: package packageSources
@@ -28,5 +32,16 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test  --verbosity normal
-      
+      run: dotnet test --no-restore --verbosity normal
+    - name: Pack Project Websocket Common
+      run: dotnet pack --configuration Release .\src\WebSocketManager.Common\WebSocketManager.Common.csproj -IncludeReferencedProjects
+    - name: Pack Project Websocket Manager
+      run: dotnet pack --configuration Release .\src\WebSocketManager\WebSocketManager.csproj -IncludeReferencedProjects  
+    - name: Pack Project Websocket Client
+      run: dotnet pack --configuration Release .\src\WebSocketManager.Client\WebSocketManager.Client.csproj -IncludeReferencedProjects    
+    - name: Publish Package Websocket Common
+      run: dotnet nuget push  .\src\WebSocketManager.Common\bin\Release\*.nupkg --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
+    - name: Publish Package
+      run: dotnet nuget push  .\src\WebSocketManager\bin\Release\*.nupkg --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
+    - name: Publish Package
+      run: dotnet nuget push  .\src\WebSocketManager.Client\bin\Release\*.nupkg --api-key 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 -s https://nuget.pkg.github.com/karanbajaj/index.json  
