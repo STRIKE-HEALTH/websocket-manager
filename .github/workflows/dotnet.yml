@@ -15,10 +15,10 @@ jobs:
         dotnet-version: ['3.0', '3.1.x', '6.0.x' ]
     steps:
     - uses: actions/checkout@v3
-    - name: Setup dotnet 
+    - name: Setup dotnet ${{ matrix.dotnet-version }}
       uses: actions/setup-dotnet@v2
-    - name: Install dependencies
-      run: dotnet add package Newtonsoft.Json --version 12.0.1
+      with:
+        dotnet-version: ${{ matrix.dotnet-version }}
     - name: Display dotnet version
       run: dotnet --version
     - name: Restore dependencies
