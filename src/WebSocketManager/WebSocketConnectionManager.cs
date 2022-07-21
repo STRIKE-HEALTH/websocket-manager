@@ -15,6 +15,8 @@ namespace WebSocketManager
 
         public WebSocket GetSocketById(string id)
         {
+            if (id == null)
+                return null;
             _sockets.TryGetValue(id, out var socket);
             return socket;
         }
