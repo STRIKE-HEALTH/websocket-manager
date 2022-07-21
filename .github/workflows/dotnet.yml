@@ -19,6 +19,8 @@ jobs:
       run: dotnet --version
     - name: package packageSources
       run: dotnet nuget list source 
+    - name: Install dependencies
+      run: dotnet add package Newtonsoft.Json --version 12.0.1
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
