@@ -55,11 +55,18 @@ namespace WebSocketManager.Client
                 // create a new web-socket so the next connect call works.
                 _clientWebSocket?.Dispose();
                 _clientWebSocket = new ClientWebSocket();
+
             }
             // don't do anything, we are already connected.
             else return;
-
-            await _clientWebSocket.ConnectAsync(new Uri(uri), CancellationToken.None).ConfigureAwait(false);
+            //_clientWebSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(120);
+            var task = _clientWebSocket.ConnectAsync(new Uri(uri), CancellationToken.None).ContinueWith(t => {
+                throw new Exception("Failed to connect to the server.", t.Exception);
+            }, TaskContinuationOptions.OnlyOnFaulted);
+            await task.ConfigureAwait(false);
+           
+         
+           
 
             await Receive(_clientWebSocket, async (receivedMessage) =>
             {
