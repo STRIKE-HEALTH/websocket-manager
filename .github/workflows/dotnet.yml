@@ -16,17 +16,21 @@ jobs:
    
     steps:
     - uses: actions/checkout@v3
-    - name: Setup .NET Core SDK '3.1.x'
+    - name: Setup .NET 
       uses: actions/setup-dotnet@v2
       with:
           dotnet-version: '6.0.x'
         
     - name: Display dotnet version
       run: dotnet --version
-    - name: add package source
+      
+    - name: add package source - strike
       run: dotnet nuget add source --username karanbajaj --password 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 --store-password-in-clear-text --name github "https://nuget.pkg.github.com/STRIKE-HEALTH/index.json"
-    - name: package packageSources
-      run: dotnet nuget list source 
+    - name: add package source - karan
+      run: dotnet nuget add source --username karanbajaj --password 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 --store-password-in-clear-text --name github-karan "https://nuget.pkg.github.com/karanbajaj/index.json"
+    - name: package sources
+      run: dotnet nuget list source
+    
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
@@ -34,14 +38,14 @@ jobs:
    # - name: Test
       #run: dotnet test --no-restore --verbosity normal
     - name: Pack Project Websocket Common
-      run: dotnet pack --configuration Release ./src/WebSocketManager.Common/WebSocketManager.Common.csproj 
+      run: dotnet pack --configuration Release ./src/WebSocketManager.Common/WebSocketManager.Common.csproj -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
     - name: Pack Project Websocket Manager
-      run: dotnet pack --configuration Release ./src/WebSocketManager/WebSocketManager.csproj    
+      run: dotnet pack --configuration Release ./src/WebSocketManager/WebSocketManager.csproj -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
     - name: Pack Project Websocket Client
-      run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj   
+      run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj -p:IncludeSymbols=true -p:SymbolPackageFormat=snupkg
     - name: Publish Package Websocket Common
-      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate --source "github" 
+      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate --source github
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate --source "github"
+      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate --source github
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate --source "github"
+      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate --source github
