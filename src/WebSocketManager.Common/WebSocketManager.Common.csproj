@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <ReleaseVersion>0.2</ReleaseVersion>
     <UserSecretsId>1a64f797-fcf5-4406-adcf-612a2cb13440</UserSecretsId>
     <Company>Strike Health</Company>
@@ -13,7 +13,7 @@
     <PackageId>Strike.WebSocketManager.Common</PackageId>
     <Authors>Karan Bajaj</Authors>
     <AssemblyName>Strike.WebSocketManager.Common</AssemblyName>
-    <Version>1.0.4</Version>
+    <Version>1.0.5</Version>
   </PropertyGroup>
 
   <ItemGroup>

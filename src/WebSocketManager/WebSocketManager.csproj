@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <ReleaseVersion>0.2</ReleaseVersion>
     <Company>Strike Health</Company>
     <Product>Strike WebSocket Manager</Product>
@@ -9,7 +9,7 @@
     <RepositoryUrl>https://github.com/STRIKE-HEALTH/websocket-manager</RepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <Version>1.0.3</Version>
+    <Version>1.0.5</Version>
     <PackageId>Strike.WebSocketManager</PackageId>
     <Authors>Karan Bajaj</Authors>
     <AssemblyName>Strike.WebSocketManager</AssemblyName>
