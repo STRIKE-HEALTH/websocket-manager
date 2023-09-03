@@ -40,8 +40,8 @@ jobs:
     - name: Pack Project Websocket Client
       run: dotnet pack --configuration Release ./src/WebSocketManager.Client/WebSocketManager.Client.csproj   
     - name: Publish Package Websocket Common
-      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager.Common/bin/Release/*.nupkg --skip-duplicate --source "github" 
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager/bin/Release/*.nupkg --skip-duplicate --source "github"
     - name: Publish Package
-      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate 
+      run: dotnet nuget push  ./src/WebSocketManager.Client/bin/Release/*.nupkg --skip-duplicate --source "github"
