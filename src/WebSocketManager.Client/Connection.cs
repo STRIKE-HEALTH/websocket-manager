@@ -60,11 +60,21 @@ namespace WebSocketManager.Client
             // don't do anything, we are already connected.
             else return;
             //_clientWebSocket.Options.KeepAliveInterval = TimeSpan.FromMinutes(120);
-            var task = _clientWebSocket.ConnectAsync(new Uri(uri), CancellationToken.None).ContinueWith(t => {
-                throw new Exception("Failed to connect to the server.", t.Exception);
-            }, TaskContinuationOptions.OnlyOnFaulted);
-            await task.ConfigureAwait(false);
-           
+            try
+            {
+                await _clientWebSocket.ConnectAsync(new Uri(uri), CancellationToken.None).ConfigureAwait(false);
+            }
+            catch (AggregateException ae)
+            {
+                ae.Flatten().Handle(e =>
+                {
+                   
+                        throw e;
+                    
+                });
+                //throw new Exception("Failed to connect to the server.", ae.Exception);
+            }
+              
          
            
 
@@ -73,6 +83,7 @@ namespace WebSocketManager.Client
                 if (receivedMessage.MessageType == MessageType.ConnectionEvent)
                 {
                     this.ConnectionId = receivedMessage.Data;
+                    Console.WriteLine($"Socket Connection established with hub with id:({this.ConnectionId})");
                 }
                 else if ( receivedMessage.MessageType == MessageType.Text)
                 {

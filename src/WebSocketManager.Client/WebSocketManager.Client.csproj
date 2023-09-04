@@ -14,7 +14,7 @@
     
     <AssemblyName>Strike.WebSocketManager.Client</AssemblyName>
     <Authors>Karan Bajaj</Authors>
-    <Version>1.3.4</Version>
+    <Version>1.3.5</Version>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
 
