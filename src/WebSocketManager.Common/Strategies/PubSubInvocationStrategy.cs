@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.WebSockets;
@@ -17,6 +18,12 @@ namespace WebSocketManager.Common
         /// The registered handlers.
         /// </summary>
         private Dictionary<string, List<InvocationHandler>> _handlers = new Dictionary<string, List<InvocationHandler>>();
+        protected readonly ILogger _logger;
+
+        public PubSubStrategy(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger<PubSubStrategy>();
+        }
 
         /// <summary>
         /// Registers the specified method name and calls the action.
@@ -92,7 +99,7 @@ namespace WebSocketManager.Common
             if (!string.IsNullOrEmpty(channel))
             {
                 //var publishHandlersForChannel = _handlers[channel];
-
+                _logger.LogDebug("Receieved message on channel {0}", channel);  
                 var publishHandlersForChannel = from result in _handlers
                                                 where Regex.Match(channel, result.Key, RegexOptions.Singleline | RegexOptions.IgnoreCase).Success
                                                 select result.Value;
@@ -102,7 +109,10 @@ namespace WebSocketManager.Common
 
                     foreach (var handlers in publishHandlersForChannel)
                         foreach (var handle in handlers)
+                        {
+                            _logger.LogDebug("Firing Handler for {0}", channel);
                             handle.Handler(invocationDescriptor.Arguments);
+                        }
 
                     return new object();
                 });
