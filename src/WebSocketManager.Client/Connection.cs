@@ -297,6 +297,10 @@ namespace WebSocketManager.Client
             await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
         }
 
+        public async Task CloseConnectionAsync()
+        {
+            await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
+        }
         private async Task Receive(ClientWebSocket clientWebSocket, Action<Message> handleMessage)
         {
             while (_clientWebSocket.State == WebSocketState.Open)
