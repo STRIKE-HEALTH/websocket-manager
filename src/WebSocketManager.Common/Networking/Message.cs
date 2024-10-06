@@ -7,6 +7,8 @@
         MethodInvocation,
         ConnectionEvent,
         MethodReturnValue,
+        Ping,
+        Pong
        
     }
 
