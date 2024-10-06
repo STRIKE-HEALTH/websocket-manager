@@ -55,7 +55,7 @@ namespace WebSocketManager.Client
             MethodInvocationStrategy = methodInvocationStrategy;
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             pingTimer  = new System.Timers.Timer();
-            pingTimer.Interval = TimeSpan.FromSeconds(90).Milliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
+            pingTimer.Interval = TimeSpan.FromSeconds(90).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
                 _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
