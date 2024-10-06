@@ -104,6 +104,13 @@ namespace WebSocketManager
             _logger.LogDebug($"socket {socketId} is now being disconnected");
             await WebSocketConnectionManager.RemoveSocket(socketId).ConfigureAwait(false);
         }
+       
+        public virtual async Task OnDisconnected(WebSocket socket)
+        {
+            var id = WebSocketConnectionManager.GetId(socket);
+            _logger.LogDebug($"socket {id} is now being disconnected");
+            await WebSocketConnectionManager.RemoveSocket(id).ConfigureAwait(false);
+        }
 
         public async Task SendMessageAsync(WebSocket socket, Message message)
         {
