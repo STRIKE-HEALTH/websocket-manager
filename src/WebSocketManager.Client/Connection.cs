@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -31,6 +32,8 @@ namespace WebSocketManager.Client
 
         System.Timers.Timer pingTimer;
 
+        ILogger _logger;
+
         /// <summary>
         /// Gets the method invocation strategy.
         /// </summary>
@@ -46,21 +49,26 @@ namespace WebSocketManager.Client
         /// Initializes a new instance of the <see cref="Connection"/> class.
         /// </summary>
         /// <param name="methodInvocationStrategy">The method invocation strategy used for incoming requests.</param>
-        public Connection(MethodInvocationStrategy methodInvocationStrategy)
+        public Connection(MethodInvocationStrategy methodInvocationStrategy, ILoggerFactory loggerFactory)
         {
+            _logger = loggerFactory.CreateLogger<Connection>();
             MethodInvocationStrategy = methodInvocationStrategy;
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             pingTimer  = new System.Timers.Timer();
             pingTimer.Interval = TimeSpan.FromSeconds(90).Milliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
+                _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
                 this.Terminate();
+                _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
                 _clientWebSocket = null;
                 await StartConnectionAsync(Uri);
+                _logger.LogDebug("Ping Timer Expired - restarted connection");
             };
         }
         public void Heartbeat()
         {
+            _logger.LogDebug("Ping Received - Restarting Ping Timer ");
             //restart pingTimer
             pingTimer.Stop();
             pingTimer.Start();
