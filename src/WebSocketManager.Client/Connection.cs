@@ -5,6 +5,7 @@ using System.Net.WebSockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -18,6 +19,8 @@ namespace WebSocketManager.Client
 
         private ClientWebSocket _clientWebSocket { get; set; }
 
+        private string Uri { get; set; }
+
         private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
         {
             ContractResolver = new CamelCasePropertyNamesContractResolver(),
@@ -25,6 +28,8 @@ namespace WebSocketManager.Client
             TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple,
             SerializationBinder = new JsonBinderWithoutAssembly()
         };
+
+        System.Timers.Timer pingTimer;
 
         /// <summary>
         /// Gets the method invocation strategy.
@@ -45,8 +50,21 @@ namespace WebSocketManager.Client
         {
             MethodInvocationStrategy = methodInvocationStrategy;
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
+            pingTimer  = new System.Timers.Timer();
+            pingTimer.Interval = TimeSpan.FromSeconds(90).Milliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
+            pingTimer.Elapsed += async (sender, e) =>
+            {
+                this.Terminate();
+                _clientWebSocket = null;
+                await StartConnectionAsync(Uri);
+            };
         }
-
+        public void Heartbeat()
+        {
+            //restart pingTimer
+            pingTimer.Stop();
+            pingTimer.Start();
+        }
         public async Task StartConnectionAsync(string uri)
         {
             // also check if connection was lost, that's probably why we get called multiple times.
@@ -75,8 +93,8 @@ namespace WebSocketManager.Client
                 //throw new Exception("Failed to connect to the server.", ae.Exception);
             }
               
-         
-           
+            pingTimer.Start();
+
 
             await Receive(_clientWebSocket, async (receivedMessage) =>
             {
@@ -182,6 +200,20 @@ namespace WebSocketManager.Client
                         _waitingRemoteInvocations.Remove(invocationResult.Identifier);
                     }
                 }
+                else if (receivedMessage.MessageType == MessageType.Ping)
+                {
+
+                    if (_clientWebSocket.State == WebSocketState.Open)
+                    {
+                        Heartbeat(); // reset the timer
+                        var message = new Message()
+                        {
+                            MessageType = MessageType.Pong,
+                            Data = receivedMessage.Data
+                        };
+                        await SendMessageAsync(message);
+                    }
+                }
                 //else if (receivedMessage.MessageType == MessageType.Event)
                 //{
                 //    // retrieve the method invocation request.
@@ -208,8 +240,8 @@ namespace WebSocketManager.Client
 
                 //    // if the unique identifier hasn't been set then the server doesn't want a return value.
 
-                    
-                    
+
+
                 //}
             });
         }
@@ -300,6 +332,13 @@ namespace WebSocketManager.Client
         public async Task CloseConnectionAsync()
         {
             await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
+            
+        }
+        public void Terminate()
+        {
+            _clientWebSocket.Abort();
+
+
         }
         private async Task Receive(ClientWebSocket clientWebSocket, Action<Message> handleMessage)
         {
