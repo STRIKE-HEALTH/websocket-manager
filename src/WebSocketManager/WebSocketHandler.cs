@@ -51,13 +51,14 @@ namespace WebSocketManager
             WebSocketConnectionManager = webSocketConnectionManager;
             MethodInvocationStrategy = methodInvocationStrategy;
             pingTimer = new System.Timers.Timer();
-            pingTimer.Interval = TimeSpan.FromSeconds(60).Milliseconds;
+            pingTimer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
             pingTimer.Elapsed += (sender, e) =>
             {
                 this.CheckHeartBeats();
             };
             _logger = logFactory.CreateLogger<WebSocketHandler>();
-
+            pingTimer.AutoReset = true;
+            pingTimer.Start();
         }
 
         /// <summary>
