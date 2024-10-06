@@ -12,7 +12,7 @@ namespace WebSocketManager
     {
         private ConcurrentDictionary<string, WebSocket> _sockets = new ConcurrentDictionary<string, WebSocket>();
         private ConcurrentDictionary<string, List<string>> _groups = new ConcurrentDictionary<string, List<string>>();
-
+        private ConcurrentDictionary<string, bool> _active = new ConcurrentDictionary<string, bool>();
         public WebSocket GetSocketById(string id)
         {
             if (id == null)
@@ -45,6 +45,7 @@ namespace WebSocketManager
         {
             var id = CreateConnectionId();
             _sockets.TryAdd(id, socket);
+            _active.TryAdd(id, true);
             return id;
         }
 
@@ -84,7 +85,9 @@ namespace WebSocketManager
 
                
             WebSocket socket;
+            bool active;
             _sockets.TryRemove(id, out socket);
+            _active.TryRemove(id, out active);
             foreach (var group in _groups.Keys)
             {
                 RemoveFromGroup(id,group);
@@ -96,7 +99,21 @@ namespace WebSocketManager
                                     statusDescription: "Closed by the WebSocketManager",
                                     cancellationToken: CancellationToken.None).ConfigureAwait(false);
         }
-
+        public bool IsSocketActive(string id)
+        {
+            bool returnValue;
+            _active.TryGetValue(id,out returnValue);
+            return returnValue;
+        }
+        public void MarkSocketActive(string socketId)
+        {
+            _active.AddOrUpdate(socketId, true, (key, oldValue) => true);
+        }
+        public void MarkSocketInactive(string socketId)
+        {
+            _active.AddOrUpdate(socketId, false, (key, oldValue) => false);
+        }
+       
         private string CreateConnectionId()
         {
             return Guid.NewGuid().ToString();

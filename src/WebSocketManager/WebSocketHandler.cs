@@ -9,6 +9,7 @@ using Newtonsoft.Json.Serialization;
 using WebSocketManager.Common;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace WebSocketManager
 {
@@ -24,6 +25,7 @@ namespace WebSocketManager
             SerializationBinder = new JsonBinderWithoutAssembly()
         };
 
+
         /// <summary>
         /// The waiting remote invocations for Server to Client method calls.
         /// </summary>
@@ -35,16 +37,27 @@ namespace WebSocketManager
         /// <value>The method invocation strategy.</value>
         public MethodInvocationStrategy MethodInvocationStrategy { get; }
 
+        private System.Timers.Timer pingTimer;
+        private readonly ILogger<WebSocketHandler> _logger;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="WebSocketHandler"/> class.
         /// </summary>
         /// <param name="webSocketConnectionManager">The web socket connection manager.</param>
         /// <param name="methodInvocationStrategy">The method invocation strategy used for incoming requests.</param>
-        public WebSocketHandler(WebSocketConnectionManager webSocketConnectionManager, MethodInvocationStrategy methodInvocationStrategy)
+        public WebSocketHandler(WebSocketConnectionManager webSocketConnectionManager, MethodInvocationStrategy methodInvocationStrategy, ILoggerFactory logFactory)
         {
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             WebSocketConnectionManager = webSocketConnectionManager;
             MethodInvocationStrategy = methodInvocationStrategy;
+            pingTimer = new System.Timers.Timer();
+            pingTimer.Interval = TimeSpan.FromSeconds(60).Milliseconds;
+            pingTimer.Elapsed += (sender, e) =>
+            {
+                this.CheckHeartBeats();
+            };
+            _logger = logFactory.CreateLogger<WebSocketHandler>();
+
         }
 
         /// <summary>
@@ -54,12 +67,12 @@ namespace WebSocketManager
         /// <returns>Awaitable Task.</returns>
         public virtual async Task OnConnected(WebSocket socket)
         {
-            WebSocketConnectionManager.AddSocket(socket);
-
+            var id = WebSocketConnectionManager.AddSocket(socket);
+            _logger.LogDebug($"socket {id} is now connected");
             await SendMessageAsync(socket, new Message()
             {
                 MessageType = MessageType.ConnectionEvent,
-                Data = WebSocketConnectionManager.GetId(socket)
+                Data = id
             }).ConfigureAwait(false);
         }
 
@@ -85,9 +98,11 @@ namespace WebSocketManager
         /// </summary>
         /// <param name="socket">The web-socket of the client.</param>
         /// <returns>Awaitable Task.</returns>
-        public virtual async Task OnDisconnected(WebSocket socket)
+        public virtual async Task OnDisconnected(string socketId)
         {
-            await WebSocketConnectionManager.RemoveSocket(WebSocketConnectionManager.GetId(socket)).ConfigureAwait(false);
+          
+            _logger.LogDebug($"socket {socketId} is now being disconnected");
+            await WebSocketConnectionManager.RemoveSocket(socketId).ConfigureAwait(false);
         }
 
         public async Task SendMessageAsync(WebSocket socket, Message message)
@@ -121,9 +136,10 @@ namespace WebSocketManager
                 }
                 catch (WebSocketException e)
                 {
+                    _logger.LogError(e,$" SendMessageToAllAsync  to {pair.Key} failed in exception");
                     if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                     {
-                        await OnDisconnected(pair.Value);
+                        await OnDisconnected(pair.Key);
                     }
                 }
             }
@@ -197,9 +213,10 @@ namespace WebSocketManager
                 }
                 catch (WebSocketException e)
                 {
+                    _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
                     if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                     {
-                        await OnDisconnected(pair.Value);
+                        await OnDisconnected(pair.Key);
                     }
                 }
             }
@@ -261,6 +278,43 @@ namespace WebSocketManager
             }
         }
 
+        public  void  CheckHeartBeats()
+        {
+            foreach (var pair in WebSocketConnectionManager.GetAll())
+            {
+                try
+                {
+                    if (pair.Value.State == WebSocketState.Open)
+                    {
+
+                        // just mark as inactive for now, we will check if the client has responded to the ping later.
+                        //if (!WebSocketConnectionManager.IsSocketActive(pair.Key))
+                        //{
+                        //    await WebSocketConnectionManager.RemoveSocket(pair.Key);
+                        //    //pair.Value.CloseAsync(WebSocketCloseStatus.NormalClosure, "Heartbeat timeout", CancellationToken.None).Wait(); // close the socket (i.e. the client has not responded to the ping).
+                        //}
+
+                        WebSocketConnectionManager.MarkSocketInactive(pair.Key); // mark the socket as inactive (i.e. it has not responded to the ping).
+                        var message = new Message()
+                        {
+                            MessageType = MessageType.Ping,
+                            Data = pair.Key
+                        };
+                        SendMessageAsync(pair.Value, message).Wait();
+                    }
+                }
+                catch (WebSocketException e)
+                {
+                    _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
+                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                    {
+                        OnDisconnected(pair.Key).Wait();
+                    }
+                }
+            }
+
+
+        }
         public async Task ReceiveAsync(WebSocket socket, WebSocketReceiveResult result, Message receivedMessage)
         {
             // method invocation request.
@@ -335,6 +389,25 @@ namespace WebSocketManager
                     // remove the completion source from the waiting list.
                     _waitingRemoteInvocations.Remove(invocationResult.Identifier);
                 }
+            }
+
+            else if (receivedMessage.MessageType == MessageType.Ping)
+            {
+                var message = new Message()
+                {
+                    MessageType = MessageType.Pong,
+                    Data = receivedMessage.Data
+                };
+                await SendMessageAsync(socket, message).ConfigureAwait(false);
+            }
+            else if (receivedMessage.MessageType == MessageType.Pong)
+            {
+                WebSocketConnectionManager.MarkSocketActive(socketId: receivedMessage.Data); // mark the socket as active (i.e. it has responded to the ping).
+
+            }
+            else
+            {
+                // we don't know what to do with this message.
             }
         }
 
