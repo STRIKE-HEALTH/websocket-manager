@@ -10,18 +10,29 @@ namespace WebSocketManager
 {
     public class WebSocketConnectionManager
     {
-        private ConcurrentDictionary<string, WebSocket> _sockets = new ConcurrentDictionary<string, WebSocket>();
+        private ConcurrentDictionary<string, List<WebSocket>> _sockets = new ConcurrentDictionary<string, List<WebSocket>>();
         private ConcurrentDictionary<string, List<string>> _groups = new ConcurrentDictionary<string, List<string>>();
         private ConcurrentDictionary<string, bool> _active = new ConcurrentDictionary<string, bool>();
+        Random rnd = new Random();
+        
         public WebSocket GetSocketById(string id)
         {
             if (id == null)
                 return null;
             _sockets.TryGetValue(id, out var socket);
-            return socket;
+
+            if(socket != null && socket.Count > 0)
+            {
+                int socketChoice = 0;
+                if (socket.Count > 1)// if we have more than one socket for this id, we will return a random one
+                    socketChoice = rnd.Next(0, socket.Count);
+                return socket[socketChoice];
+            }
+                
+            return null; 
         }
 
-        public ConcurrentDictionary<string, WebSocket> GetAll()
+        public ConcurrentDictionary<string, List<WebSocket>> GetAll()
         {
             return _sockets;
         }
@@ -38,13 +49,21 @@ namespace WebSocketManager
 
         public string GetId(WebSocket socket)
         {
-            return _sockets.FirstOrDefault(p => p.Value == socket).Key;
+            foreach(var kv in _sockets)
+            {
+                foreach(var s in kv.Value)
+                    if (socket == s)
+                        return kv.Key;
+            }
+            return null;
+
+            //return _sockets.FirstOrDefault(p => p.Value == socket).Key;
         }
 
         public string AddSocket(WebSocket socket)
         {
             var id = CreateConnectionId();
-            _sockets.TryAdd(id, socket);
+            _sockets.TryAdd(id, new List<WebSocket> { socket });
             _active.TryAdd(id, true);
             return id;
         }
@@ -52,9 +71,9 @@ namespace WebSocketManager
         public void AddSocketWithId(string id,WebSocket socket)
         {
             if(_sockets.ContainsKey(id))
-                _sockets[id] =socket;
+                _sockets[id].Add(socket);
             else
-                _sockets.TryAdd(id, socket);
+                _sockets.TryAdd(id, new List<WebSocket> { socket });
            
         }
 
@@ -84,20 +103,23 @@ namespace WebSocketManager
             if (id == null) return;
 
                
-            WebSocket socket;
+            List<WebSocket> sockets;
             bool active;
-            _sockets.TryRemove(id, out socket);
+            _sockets.TryRemove(id, out sockets);
             _active.TryRemove(id, out active);
             foreach (var group in _groups.Keys)
             {
                 RemoveFromGroup(id,group);
 
-            } 
-            if (socket.State != WebSocketState.Open) return;
+            }
+            foreach (var socket in sockets)
+            {
+                if (socket.State != WebSocketState.Open) return;
 
-            await socket.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
-                                    statusDescription: "Closed by the WebSocketManager",
-                                    cancellationToken: CancellationToken.None).ConfigureAwait(false);
+                await socket.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
+                                        statusDescription: "Closed by the WebSocketManager",
+                                        cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            }
         }
         public bool IsSocketActive(string id)
         {

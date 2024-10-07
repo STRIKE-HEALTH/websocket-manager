@@ -139,8 +139,9 @@ namespace WebSocketManager
             {
                 try
                 {
-                    if (pair.Value.State == WebSocketState.Open)
-                        await SendMessageAsync(pair.Value, message).ConfigureAwait(false);
+                    foreach(var socket in pair.Value)
+                        if (socket.State == WebSocketState.Open)
+                            await SendMessageAsync(socket, message).ConfigureAwait(false);
                 }
                 catch (WebSocketException e)
                 {
@@ -216,8 +217,9 @@ namespace WebSocketManager
             {
                 try
                 {
-                    if (pair.Value.State == WebSocketState.Open)
-                        await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
+                    foreach (var socket in pair.Value)
+                        if (socket.State == WebSocketState.Open)
+                            await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
                 }
                 catch (WebSocketException e)
                 {
@@ -292,23 +294,26 @@ namespace WebSocketManager
             {
                 try
                 {
-                    if (pair.Value.State == WebSocketState.Open)
+                    foreach (var socket in pair.Value)
                     {
-
-                        // just mark as inactive for now, we will check if the client has responded to the ping later.
-                        //if (!WebSocketConnectionManager.IsSocketActive(pair.Key))
-                        //{
-                        //    await WebSocketConnectionManager.RemoveSocket(pair.Key);
-                        //    //pair.Value.CloseAsync(WebSocketCloseStatus.NormalClosure, "Heartbeat timeout", CancellationToken.None).Wait(); // close the socket (i.e. the client has not responded to the ping).
-                        //}
-
-                        WebSocketConnectionManager.MarkSocketInactive(pair.Key); // mark the socket as inactive (i.e. it has not responded to the ping).
-                        var message = new Message()
+                        if (socket.State == WebSocketState.Open)
                         {
-                            MessageType = MessageType.Ping,
-                            Data = pair.Key
-                        };
-                        SendMessageAsync(pair.Value, message).Wait();
+
+                            // just mark as inactive for now, we will check if the client has responded to the ping later.
+                            //if (!WebSocketConnectionManager.IsSocketActive(pair.Key))
+                            //{
+                            //    await WebSocketConnectionManager.RemoveSocket(pair.Key);
+                            //    //pair.Value.CloseAsync(WebSocketCloseStatus.NormalClosure, "Heartbeat timeout", CancellationToken.None).Wait(); // close the socket (i.e. the client has not responded to the ping).
+                            //}
+
+                            WebSocketConnectionManager.MarkSocketInactive(pair.Key); // mark the socket as inactive (i.e. it has not responded to the ping).
+                            var message = new Message()
+                            {
+                                MessageType = MessageType.Ping,
+                                Data = pair.Key
+                            };
+                            SendMessageAsync(socket, message).Wait();
+                        }
                     }
                 }
                 catch (WebSocketException e)
