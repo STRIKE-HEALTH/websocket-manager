@@ -75,6 +75,9 @@ namespace WebSocketManager.Client
         }
         public async Task StartConnectionAsync(string uri)
         {
+            if (uri == null)
+                return;
+            Uri = uri;
             // also check if connection was lost, that's probably why we get called multiple times.
             if (_clientWebSocket == null || _clientWebSocket.State != WebSocketState.Open)
             {
