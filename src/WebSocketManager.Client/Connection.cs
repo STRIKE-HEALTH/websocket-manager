@@ -65,7 +65,7 @@ namespace WebSocketManager.Client
                 await StartConnectionAsync(Uri);
                 _logger.LogDebug("Ping Timer Expired - restarted connection");
             };
-        }
+        } 
         public void Heartbeat()
         {
             _logger.LogDebug("Ping Received - Restarting Ping Timer ");
