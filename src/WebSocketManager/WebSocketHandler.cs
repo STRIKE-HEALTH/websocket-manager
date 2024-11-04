@@ -110,7 +110,8 @@ namespace WebSocketManager
         {
             var id = WebSocketConnectionManager.GetId(socket);
             _logger.LogDebug($"socket {id} is now being disconnected");
-            await WebSocketConnectionManager.RemoveSocket(id).ConfigureAwait(false);
+
+            await WebSocketConnectionManager.RemoveSocket(socket).ConfigureAwait(false);
         }
 
         public async Task SendMessageAsync(WebSocket socket, Message message)
@@ -137,18 +138,21 @@ namespace WebSocketManager
         {
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
-                try
+                foreach (var socket in pair.Value)
                 {
-                    foreach(var socket in pair.Value)
+                    try
+                    {
+
                         if (socket.State == WebSocketState.Open)
                             await SendMessageAsync(socket, message).ConfigureAwait(false);
-                }
-                catch (WebSocketException e)
-                {
-                    _logger.LogError(e,$" SendMessageToAllAsync  to {pair.Key} failed in exception");
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                    }
+                    catch (WebSocketException e)
                     {
-                        await OnDisconnected(pair.Key);
+                        _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
+                        if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                        {
+                            await OnDisconnected(socket);
+                        }
                     }
                 }
             }
@@ -215,18 +219,21 @@ namespace WebSocketManager
         {
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
-                try
+                foreach (var socket in pair.Value)
                 {
-                    foreach (var socket in pair.Value)
+                    try
+                    {
+
                         if (socket.State == WebSocketState.Open)
                             await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
-                }
-                catch (WebSocketException e)
-                {
-                    _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                    }
+                    catch (WebSocketException e)
                     {
-                        await OnDisconnected(pair.Key);
+                        _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
+                        if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                        {
+                            await OnDisconnected(socket);
+                        }
                     }
                 }
             }
