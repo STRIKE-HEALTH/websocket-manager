@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
@@ -101,12 +102,8 @@ namespace WebSocketManager
         public async Task RemoveSocket(string id)
         {
             if (id == null) return;
-
-               
-            List<WebSocket> sockets;
             bool active;
-            _sockets.TryRemove(id, out sockets);
-            _active.TryRemove(id, out active);
+            _sockets.TryGetValue(id, out var sockets);
             foreach (var group in _groups.Keys)
             {
                 RemoveFromGroup(id,group);
@@ -120,7 +117,35 @@ namespace WebSocketManager
                                         statusDescription: "Closed by the WebSocketManager",
                                         cancellationToken: CancellationToken.None).ConfigureAwait(false);
             }
+            _sockets.TryRemove(id, out sockets);
+            _active.TryRemove(id, out active);
         }
+        public async Task RemoveSocket(WebSocket socket)
+        {
+            var id = GetId(socket);
+            if (id == null) return;
+            bool active;
+            _sockets.TryGetValue(id, out var sockets);
+            sockets.Remove(socket);
+            
+            if (socket.State != WebSocketState.Open) return;
+
+            await socket.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
+                                    statusDescription: "Closed by the WebSocketManager",
+                                    cancellationToken: CancellationToken.None).ConfigureAwait(false);
+            if (sockets.Count == 0)
+            {
+                _active.TryRemove(id, out active);
+                foreach (var group in _groups.Keys)
+                {
+                    RemoveFromGroup(id, group);
+
+                }
+            }
+
+
+        }
+
         public bool IsSocketActive(string id)
         {
             bool returnValue;
