@@ -58,19 +58,32 @@ namespace WebSocketManager.Client
             pingTimer.Interval = TimeSpan.FromSeconds(90).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
-                try
+                await Task.Run(async () =>
                 {
-                    _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
-                    this.Terminate();
-                    _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
-                    _clientWebSocket = null;
-                    await StartConnectionAsync(Uri);
-                    _logger.LogDebug("Ping Timer Expired - restarted connection");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Ping Timer Expired - Error restarting connection");
-                }
+                    try
+                    {
+                        pingTimer.Stop();
+                        _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
+                        if (_clientWebSocket != null)
+                        {
+                            this.Terminate();
+                            _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
+                            _clientWebSocket = null;
+                            Thread.Sleep(100);
+                        }
+                        await StartConnectionAsync(Uri);
+                        _logger.LogDebug("Ping Timer Expired - restarted connection");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Ping Timer Expired - Error restarting connection");
+                    }
+                    finally
+                    {
+                        pingTimer.Start();
+                    }
+                });
+                
             };
         } 
         public void Heartbeat()
