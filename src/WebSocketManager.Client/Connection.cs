@@ -58,12 +58,19 @@ namespace WebSocketManager.Client
             pingTimer.Interval = TimeSpan.FromSeconds(90).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
-                _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
-                this.Terminate();
-                _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
-                _clientWebSocket = null;
-                await StartConnectionAsync(Uri);
-                _logger.LogDebug("Ping Timer Expired - restarted connection");
+                try
+                {
+                    _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
+                    this.Terminate();
+                    _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
+                    _clientWebSocket = null;
+                    await StartConnectionAsync(Uri);
+                    _logger.LogDebug("Ping Timer Expired - restarted connection");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Ping Timer Expired - Error restarting connection");
+                }
             };
         } 
         public void Heartbeat()
@@ -348,7 +355,7 @@ namespace WebSocketManager.Client
         public void Terminate()
         {
             _clientWebSocket.Abort();
-
+            _clientWebSocket = null;
 
         }
         private async Task Receive(ClientWebSocket clientWebSocket, Action<Message> handleMessage)
