@@ -10,6 +10,7 @@ using WebSocketManager.Common;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using System.Net.Sockets;
 
 namespace WebSocketManager
 {
@@ -114,6 +115,14 @@ namespace WebSocketManager
             await WebSocketConnectionManager.RemoveSocket(socket).ConfigureAwait(false);
         }
 
+        public async Task RemoveSocket(WebSocket socket)
+        {
+            var id = WebSocketConnectionManager.GetId(socket);
+            _logger.LogDebug($"socket {id} is now being disconnected");
+
+            await WebSocketConnectionManager.RemoveSocket(socket).ConfigureAwait(false);
+        }
+
         public async Task SendMessageAsync(WebSocket socket, Message message)
         {
             if (socket.State != WebSocketState.Open)
@@ -136,6 +145,7 @@ namespace WebSocketManager
 
         public async Task SendMessageToAllAsync(Message message)
         {
+            List<WebSocket> disconnectedSockets = new List<WebSocket>();
             foreach (var pair in WebSocketConnectionManager.GetAll())
             {
                 foreach (var socket in pair.Value)
@@ -151,11 +161,17 @@ namespace WebSocketManager
                         _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
                         if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                         {
-                            await OnDisconnected(socket);
+                            disconnectedSockets.Add(socket);
+                           
                         }
                     }
                 }
             }
+            foreach (var socket in disconnectedSockets)
+            {
+                await RemoveSocket(socket);
+            }
+            
         }
 
         public async Task InvokeClientMethodAsync(string socketId, string methodName, object[] arguments)
