@@ -55,7 +55,7 @@ namespace WebSocketManager.Client
             MethodInvocationStrategy = methodInvocationStrategy;
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             pingTimer  = new System.Timers.Timer();
-            pingTimer.Interval = TimeSpan.FromSeconds(90).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
+            pingTimer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
                 await Task.Run(async () =>
@@ -73,10 +73,17 @@ namespace WebSocketManager.Client
                         }
                         await StartConnectionAsync(Uri);
                         _logger.LogDebug("Ping Timer Expired - restarted connection");
+                        pingTimer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Ping Timer Expired - Error restarting connection");
+                        pingTimer.Interval = pingTimer.Interval+TimeSpan.FromSeconds(20).TotalMilliseconds;
+                        var maxInterval = TimeSpan.FromMinutes(2).TotalMilliseconds;
+                        if(pingTimer.Interval > maxInterval)
+                        {
+                            pingTimer.Interval = maxInterval;
+                        }
                     }
                     finally
                     {
