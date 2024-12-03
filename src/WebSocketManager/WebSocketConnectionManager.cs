@@ -9,9 +9,64 @@ using System.Threading.Tasks;
 
 namespace WebSocketManager
 {
+    public class InternalSocket : WebSocket
+    {
+        private WebSocket _websocket;
+       
+        private string Id { get; set; }
+        public bool Errored { get; set; }
+        public WebSocket GetSocket()
+        {
+            return _websocket;
+        }
+        public InternalSocket(WebSocket socket, string id)
+        {
+            _websocket = socket;
+            Id = id;
+            Errored = false;
+        }
+        public override WebSocketCloseStatus? CloseStatus => _websocket.CloseStatus;
+
+        public override string CloseStatusDescription => _websocket.CloseStatusDescription;
+
+        public override WebSocketState State => _websocket.State;
+
+        public override string SubProtocol => _websocket.SubProtocol;
+
+        public override void Abort()
+        {
+            _websocket.Abort();
+        }
+
+        public override Task CloseAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+        {
+            return _websocket.CloseAsync(closeStatus, statusDescription, cancellationToken);
+        }
+
+        public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string statusDescription, CancellationToken cancellationToken)
+        {
+            return _websocket.CloseOutputAsync(closeStatus, statusDescription, cancellationToken);
+        }
+
+        public override void Dispose()
+        {
+            _websocket.Dispose();
+        }
+
+        public override Task<WebSocketReceiveResult> ReceiveAsync(ArraySegment<byte> buffer, CancellationToken cancellationToken)
+        {
+            return _websocket.ReceiveAsync(buffer, cancellationToken);
+        }
+
+        public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
+        {
+            return _websocket.SendAsync(buffer, messageType, endOfMessage, cancellationToken);
+        }
+    }
+
     public class WebSocketConnectionManager
     {
-        private ConcurrentDictionary<string, List<WebSocket>> _sockets = new ConcurrentDictionary<string, List<WebSocket>>();
+        private ConcurrentDictionary<string, List<InternalSocket>> _sockets = new ConcurrentDictionary<string, List<InternalSocket>>();
         private ConcurrentDictionary<string, List<string>> _groups = new ConcurrentDictionary<string, List<string>>();
         private ConcurrentDictionary<string, bool> _active = new ConcurrentDictionary<string, bool>();
         Random rnd = new Random();
@@ -33,7 +88,7 @@ namespace WebSocketManager
             return null; 
         }
 
-        public ConcurrentDictionary<string, List<WebSocket>> GetAll()
+        public ConcurrentDictionary<string, List<InternalSocket>> GetAll()
         {
             return _sockets;
         }
@@ -53,7 +108,7 @@ namespace WebSocketManager
             foreach(var kv in _sockets)
             {
                 foreach(var s in kv.Value)
-                    if (socket == s)
+                    if (socket == s.GetSocket())
                         return kv.Key;
             }
             return null;
@@ -64,38 +119,50 @@ namespace WebSocketManager
         public string AddSocket(WebSocket socket)
         {
             var id = CreateConnectionId();
-            _sockets.TryAdd(id, new List<WebSocket> { socket });
-            _active.TryAdd(id, true);
+            lock (_sockets)
+            {
+                _sockets.TryAdd(id, new List<InternalSocket> { new InternalSocket(socket,id) });
+                _active.TryAdd(id, true);
+            }
             return id;
         }
 
         public void AddSocketWithId(string id,WebSocket socket)
         {
-            if(_sockets.ContainsKey(id))
-                _sockets[id].Add(socket);
-            else
-                _sockets.TryAdd(id, new List<WebSocket> { socket });
+            lock (_sockets)
+            {
+                if (_sockets.ContainsKey(id))
+                    _sockets[id].Add(new InternalSocket(socket,id));
+                else
+                    _sockets.TryAdd(id, new List<InternalSocket> { new InternalSocket(socket,id) });
+            }
            
         }
 
         public void AddToGroup(string socketID, string groupID)
         {
-            if (_groups.ContainsKey(groupID))
+            lock (_groups)
             {
-                if(!_groups[groupID].Contains(socketID))
-                    _groups[groupID].Add(socketID);
+                if (_groups.ContainsKey(groupID))
+                {
+                    if (!_groups[groupID].Contains(socketID))
+                        _groups[groupID].Add(socketID);
 
-                return;
+                    return;
+                }
+
+                _groups.TryAdd(groupID, new List<string> { socketID });
             }
-
-            _groups.TryAdd(groupID, new List<string> { socketID });
         }
 
         public void RemoveFromGroup(string socketID, string groupID)
         {
-            if (_groups.ContainsKey(groupID))
+            lock (_groups)
             {
-                _groups[groupID].Remove(socketID);
+                if (_groups.ContainsKey(groupID))
+                {
+                    _groups[groupID].Remove(socketID);
+                }
             }
         }
 
@@ -117,31 +184,38 @@ namespace WebSocketManager
                                         statusDescription: "Closed by the WebSocketManager",
                                         cancellationToken: CancellationToken.None).ConfigureAwait(false);
             }
-            _sockets.TryRemove(id, out sockets);
-            _active.TryRemove(id, out active);
+            lock (_sockets)
+            {
+                _sockets.TryRemove(id, out sockets);
+                _active.TryRemove(id, out active);
+            }
         }
         public async Task RemoveSocket(WebSocket socket)
         {
             var id = GetId(socket);
             if (id == null) return;
             bool active;
-            _sockets.TryGetValue(id, out var sockets);
-            sockets.Remove(socket);
+            lock (_sockets)
+            {
+                _sockets.TryGetValue(id, out var sockets);
+                sockets.RemoveAll(x=>x.GetSocket()==socket);
+                if (sockets.Count == 0)
+                {
+                    _active.TryRemove(id, out active);
+                    foreach (var group in _groups.Keys)
+                    {
+                        RemoveFromGroup(id, group);
+
+                    }
+                }
+            }
             
             if (socket.State != WebSocketState.Open) return;
 
             await socket.CloseAsync(closeStatus: WebSocketCloseStatus.NormalClosure,
                                     statusDescription: "Closed by the WebSocketManager",
                                     cancellationToken: CancellationToken.None).ConfigureAwait(false);
-            if (sockets.Count == 0)
-            {
-                _active.TryRemove(id, out active);
-                foreach (var group in _groups.Keys)
-                {
-                    RemoveFromGroup(id, group);
-
-                }
-            }
+            
 
 
         }

@@ -145,14 +145,14 @@ namespace WebSocketManager
 
         public async Task SendMessageToAllAsync(Message message)
         {
-            List<WebSocket> disconnectedSockets = new List<WebSocket>();
-            foreach (var pair in WebSocketConnectionManager.GetAll())
+            var sockets = WebSocketConnectionManager.GetAll();
+            foreach (var pair in sockets)
             {
                 foreach (var socket in pair.Value)
                 {
                     try
                     {
-
+                        if (socket.Errored) continue;
                         if (socket.State == WebSocketState.Open)
                             await SendMessageAsync(socket, message).ConfigureAwait(false);
                     }
@@ -161,17 +161,13 @@ namespace WebSocketManager
                         _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
                         if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                         {
-                            disconnectedSockets.Add(socket);
-                           
+                            socket.Errored = true;
+                            socket.Abort();
+                            //await OnDisconnected(socket);
                         }
                     }
                 }
             }
-            foreach (var socket in disconnectedSockets)
-            {
-                await RemoveSocket(socket);
-            }
-            
         }
 
         public async Task InvokeClientMethodAsync(string socketId, string methodName, object[] arguments)
@@ -239,7 +235,7 @@ namespace WebSocketManager
                 {
                     try
                     {
-
+                        if (socket.Errored) continue;
                         if (socket.State == WebSocketState.Open)
                             await InvokeClientMethodAsync(pair.Key, methodName, arguments).ConfigureAwait(false);
                     }
@@ -248,7 +244,9 @@ namespace WebSocketManager
                         _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
                         if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
                         {
-                            await OnDisconnected(socket);
+                            socket.Errored = true;
+                            socket.Abort();
+                            //await OnDisconnected(socket);
                         }
                     }
                 }
@@ -319,7 +317,7 @@ namespace WebSocketManager
                 {
                     foreach (var socket in pair.Value)
                     {
-                        if (socket.State == WebSocketState.Open)
+                        if (socket.State == WebSocketState.Open && !socket.Errored)
                         {
 
                             // just mark as inactive for now, we will check if the client has responded to the ping later.
@@ -335,17 +333,26 @@ namespace WebSocketManager
                                 MessageType = MessageType.Ping,
                                 Data = pair.Key
                             };
-                            SendMessageAsync(socket, message).Wait();
+                            try
+                            {
+                                SendMessageAsync(socket, message).Wait();
+                            }
+                            catch (WebSocketException e)
+                            {
+                                _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
+                                if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
+                                {
+                                    socket.Errored = true;
+                                    socket.Abort();
+                                }
+                            }
                         }
                     }
                 }
                 catch (WebSocketException e)
                 {
                     _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
-                    if (e.WebSocketErrorCode == WebSocketError.ConnectionClosedPrematurely)
-                    {
-                        OnDisconnected(pair.Key).Wait();
-                    }
+                   
                 }
             }
 
