@@ -337,6 +337,7 @@ namespace WebSocketManager
                             };
                             try
                             {
+                                _logger.LogDebug($" Pinging socket {pair.Key} - {socket.GetHashCode()}");
                                 SendMessageAsync(socket, message).Wait();
                             }
                             catch (WebSocketException e)
