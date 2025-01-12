@@ -315,6 +315,8 @@ namespace WebSocketManager
             {
                 try
                 {
+                    _logger.LogDebug($" Pinging all sockets for {pair.Key}");
+
                     foreach (var socket in pair.Value)
                     {
                         if (socket.State == WebSocketState.Open && !socket.Errored)
@@ -346,6 +348,10 @@ namespace WebSocketManager
                                     socket.Abort();
                                 }
                             }
+                        }
+                        else
+                        {
+                            _logger.LogDebug($" Not Pinging socket for  {pair.Key} its not open or errored");
                         }
                     }
                 }
