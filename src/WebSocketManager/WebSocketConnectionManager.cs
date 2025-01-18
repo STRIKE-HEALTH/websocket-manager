@@ -87,6 +87,37 @@ namespace WebSocketManager
                 
             return null; 
         }
+        public List<InternalSocket> GetAllSocketById(string id)
+        {
+            if (id == null)
+                return null;
+            _sockets.TryGetValue(id, out var sockets);
+
+            if (sockets != null && sockets.Count > 0)
+            {
+                return sockets;
+            }
+
+            return null;
+        }
+        public WebSocket GetOpenSocketById(string id)
+        {
+            if (id == null)
+                return null;
+            _sockets.TryGetValue(id, out var sockets);
+
+            if (sockets != null && sockets.Count > 0)
+            {
+                var active_sockets = sockets.Where(x => x.State == WebSocketState.Open).ToList();
+                if (active_sockets.Count == 0) return null;
+                int socketChoice = 0;
+                if (active_sockets.Count > 1)// if we have more than one socket for this id, we will return a random one
+                    socketChoice = rnd.Next(0, active_sockets.Count);
+                return active_sockets[socketChoice];
+            }
+
+            return null;
+        }
 
         public ConcurrentDictionary<string, List<InternalSocket>> GetAll()
         {

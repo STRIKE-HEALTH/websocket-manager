@@ -347,6 +347,7 @@ namespace WebSocketManager
                                 {
                                     socket.Errored = true;
                                     socket.Abort();
+                                    RemoveSocket(socket).ConfigureAwait(false);
                                 }
                             }
                         }
