@@ -17,6 +17,7 @@ namespace WebSocketManager
     public abstract class WebSocketHandler
     {
         protected WebSocketConnectionManager WebSocketConnectionManager { get; set; }
+        public int PingTimerInSeconds { get; set; } = 30; //server has to be faster than client ping timer expiration
 
         private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
         {
@@ -52,7 +53,7 @@ namespace WebSocketManager
             WebSocketConnectionManager = webSocketConnectionManager;
             MethodInvocationStrategy = methodInvocationStrategy;
             pingTimer = new System.Timers.Timer();
-            pingTimer.Interval = TimeSpan.FromSeconds(60).TotalMilliseconds;
+            pingTimer.Interval = TimeSpan.FromSeconds(PingTimerInSeconds).TotalMilliseconds;
             pingTimer.Elapsed += (sender, e) =>
             {
                 this.CheckHeartBeats();
@@ -325,11 +326,11 @@ namespace WebSocketManager
                             // just mark as inactive for now, we will check if the client has responded to the ping later.
                             //if (!WebSocketConnectionManager.IsSocketActive(pair.Key))
                             //{
-                            //    await WebSocketConnectionManager.RemoveSocket(pair.Key);
+                            //    WebSocketConnectionManager.RemoveSocket(pair.Key).Wait();
                             //    //pair.Value.CloseAsync(WebSocketCloseStatus.NormalClosure, "Heartbeat timeout", CancellationToken.None).Wait(); // close the socket (i.e. the client has not responded to the ping).
                             //}
 
-                            WebSocketConnectionManager.MarkSocketInactive(pair.Key); // mark the socket as inactive (i.e. it has not responded to the ping).
+                            WebSocketConnectionManager.MarkSocketInactive(pair.Key); // mark the socket as inactive (i.e. it has not responded to the ping). will get active if pong is heard back
                             var message = new Message()
                             {
                                 MessageType = MessageType.Ping,
@@ -354,6 +355,8 @@ namespace WebSocketManager
                         else
                         {
                             _logger.LogDebug($" Not Pinging socket for  {pair.Key} its not open or errored");
+                            if(socket.State == WebSocketState.Aborted || socket.State == WebSocketState.Closed || socket.State == WebSocketState.None)
+                                WebSocketConnectionManager.RemoveSocket(pair.Key).ConfigureAwait(false);
                         }
                     }
                 }
