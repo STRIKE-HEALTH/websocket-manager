@@ -16,6 +16,9 @@ namespace WebSocketManager.Client
 {
     public partial class Connection
     {
+        public int PingTimerInSeconds { get; set; } = 90;
+        public int PingTimerExceptionIncrementInSeconds { get; set; } = 20;
+        public int PingTimerExceptionMaxInSeconds { get; set; } = 90;
         public string ConnectionId { get; set; }
 
         private ClientWebSocket _clientWebSocket { get; set; }
@@ -55,7 +58,7 @@ namespace WebSocketManager.Client
             MethodInvocationStrategy = methodInvocationStrategy;
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             pingTimer  = new System.Timers.Timer();
-            pingTimer.Interval = TimeSpan.FromSeconds(90).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
+            pingTimer.Interval = TimeSpan.FromSeconds(PingTimerInSeconds).TotalMilliseconds; // server checks every second - we are making sure to give a 30 sec buffer to accoutn for delay
             pingTimer.Elapsed += async (sender, e) =>
             {
                 await Task.Run(async () =>
@@ -66,20 +69,27 @@ namespace WebSocketManager.Client
                         _logger.LogDebug("Ping Timer Expired - No Ping Recieved - connection  is down");
                         if (_clientWebSocket != null)
                         {
-                            this.Terminate();
-                            _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
+                            if (_clientWebSocket.State == WebSocketState.Open)
+                            {
+                                await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Ping Timer Expired - No Ping Recieved - connection  is down", CancellationToken.None);
+                            }
+                            else
+                            {
+                                this.Terminate();
+                                _logger.LogDebug("Ping Timer Expired - internal connection terminated.");
+                            }
                             _clientWebSocket = null;
                             Thread.Sleep(100);
                         }
+                        _logger.LogDebug("Ping Timer Expired - Restarting connection");
                         await StartConnectionAsync(Uri);
-                        _logger.LogDebug("Ping Timer Expired - restarted connection");
-                        pingTimer.Interval = TimeSpan.FromSeconds(30).TotalMilliseconds;
+                        pingTimer.Interval = TimeSpan.FromSeconds(PingTimerInSeconds).TotalMilliseconds;
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Ping Timer Expired - Error restarting connection");
-                        pingTimer.Interval = pingTimer.Interval+TimeSpan.FromSeconds(20).TotalMilliseconds;
-                        var maxInterval = TimeSpan.FromMinutes(2).TotalMilliseconds;
+                        pingTimer.Interval = pingTimer.Interval+TimeSpan.FromSeconds(PingTimerExceptionIncrementInSeconds).TotalMilliseconds;
+                        var maxInterval = TimeSpan.FromMinutes(PingTimerExceptionMaxInSeconds).TotalMilliseconds;
                         if(pingTimer.Interval > maxInterval)
                         {
                             pingTimer.Interval = maxInterval;
