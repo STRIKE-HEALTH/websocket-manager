@@ -374,16 +374,19 @@ namespace WebSocketManager.Client
 
         public async Task StopConnectionAsync()
         {
+            pingTimer.Stop();
             await _clientWebSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
         }
 
         public async Task CloseConnectionAsync()
         {
+            pingTimer.Stop();
             await _clientWebSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken.None).ConfigureAwait(false);
             
         }
         public void Terminate()
         {
+            pingTimer.Stop();
             _clientWebSocket.Abort();
             _clientWebSocket = null;
 
