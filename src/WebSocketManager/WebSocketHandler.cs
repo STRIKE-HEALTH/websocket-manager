@@ -316,6 +316,7 @@ namespace WebSocketManager
             {
                 try
                 {
+                    pingTimer.Stop();
                     _logger.LogDebug($" Pinging all sockets for {pair.Key}");
 
                     foreach (var socket in pair.Value)
@@ -364,6 +365,10 @@ namespace WebSocketManager
                 {
                     _logger.LogError(e, $" SendMessageToAllAsync  to {pair.Key} failed in exception");
                    
+                }
+                finally
+                {
+                    pingTimer.Start();
                 }
             }
 
