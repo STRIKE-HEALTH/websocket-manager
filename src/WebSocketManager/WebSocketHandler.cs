@@ -17,6 +17,13 @@ namespace WebSocketManager
     public abstract class WebSocketHandler
     {
         protected WebSocketConnectionManager WebSocketConnectionManager { get; set; }
+
+        private bool _pingEnabled = false;
+        public bool PingEnabled { 
+            get { return _pingEnabled; }
+            set { if (value) { pingTimer.Stop(); pingTimer.Start(); } else { pingTimer.Stop(); } }
+        } 
+
         public int PingTimerInSeconds { get; set; } = 30; //server has to be faster than client ping timer expiration
 
         private JsonSerializerSettings _jsonSerializerSettings = new JsonSerializerSettings()
@@ -52,6 +59,7 @@ namespace WebSocketManager
             _jsonSerializerSettings.Converters.Insert(0, new PrimitiveJsonConverter());
             WebSocketConnectionManager = webSocketConnectionManager;
             MethodInvocationStrategy = methodInvocationStrategy;
+            
             pingTimer = new System.Timers.Timer();
             pingTimer.Interval = TimeSpan.FromSeconds(PingTimerInSeconds).TotalMilliseconds;
             pingTimer.Elapsed += (sender, e) =>
@@ -60,8 +68,8 @@ namespace WebSocketManager
             };
             _logger = logFactory.CreateLogger<WebSocketHandler>();
             pingTimer.AutoReset = true;
-            pingTimer.Start();
         }
+
 
         /// <summary>
         /// Called when a client has connected to the server.
